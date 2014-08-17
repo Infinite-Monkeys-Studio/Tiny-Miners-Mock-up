@@ -7,11 +7,11 @@ PVector pLoc;
 ArrayList<Character> keys = new ArrayList<Character>();
 boolean collide = false;
 float speed = 2;
-
+boolean showDebug = false;
 
 void setup() {
   size(1000, 1000);
-  pLoc = new PVector(350, 650, 1);
+  pLoc = new PVector(350, 650);
   wall = loadImage("wall.png");
   goblinWall = loadImage("goblin_wall.png");
   floor = loadImage("floor.png");
@@ -39,6 +39,18 @@ void keyTyped() {
   if(key == 'p') {
     saveMap();
   }
+  
+  if(key == 'x') {
+    exit();
+  }
+  
+  if(key == TAB) {
+    saveMap();
+  }
+  
+//  if(key == 'CHAR') {
+//    //DO SOMTHING
+//  }
 }
 
 void keyPressed() {
@@ -74,18 +86,33 @@ void control() {
   }
 }
 
+float getRot(PVector m, PVector p) {
+  float rot = 0;
+  if(p.x < m.x ) {
+    rot = atan((p.y - m.y) / (p.x - m.x));
+  } else { 
+    rot = PI + atan((m.y - p.y) / (m.x - p.x));
+  }
+  rot = rot + HALF_PI;
+  return rot;
+}
+
 void player() {
+  float rot = getRot(mouseLoc(), pLoc);
+  
   pushMatrix();
   translate(pLoc.x, pLoc.y);
-  rotate(PI/pLoc.z);
+  rotate(rot);
   image(player, -player.width/2, -player.height/2);
-  noFill();
-  if(collide){
-    stroke(255,0,0);
-  } else {
-    stroke(0,255,0);
+  if(showDebug) {
+    noFill();
+    if(collide){
+      stroke(255,0,0);
+    } else {
+      stroke(0,255,0);
+    }
+    ellipse(0, 0, 75, 75);
   }
-  ellipse(0, 0, 75, 75);
   popMatrix();
 }
 
@@ -97,8 +124,14 @@ void physics() {
   for(int r = 0; r < iter; r++){
     PVector test = PVector.add(rot, pLoc);
     int[] sq = getRect(test);
-    fill(0);
-    ellipse(test.x, test.y, 2, 2);
+    
+    if(showDebug) {
+      pushMatrix();
+      fill(0);
+      ellipse(test.x, test.y, 2, 2);
+      popMatrix();
+    }
+    
     if(walls[sq[0]][sq[1]] != 0){
       PVector face = rot.get();
       face.rotate(PI);
@@ -165,9 +198,14 @@ void saveMap() {
   PrintWriter output = createWriter("data/world.txt");
   String line = "";
   println("saving map!");
+  int[] player = getRect(pLoc);
   for(int y = 0; y < walls.length; y++) {
     for(int x = 0; x < walls.length; x++) {
-      line = line + walls[x][y];
+      if(player[0] == x && player[1] == y) {
+        line = line + "p";
+      } else {
+        line = line + walls[x][y];
+      }
       
       if(x != 9) {
         line = line + ",";
@@ -199,7 +237,11 @@ void loadMap() {
     } else {
       String[] pieces = split(line, ',');
       for(int x = 0; x < pieces.length; x++) {
-        walls[x][y] = Integer.valueOf(pieces[x]);
+        if(pieces[x].equalsIgnoreCase("p")) {
+          pLoc = new PVector(x * 100 + 50, y  * 100 + 50);
+        } else {
+          walls[x][y] = Integer.valueOf(pieces[x]);
+        }
       }   
       y++;
     }
