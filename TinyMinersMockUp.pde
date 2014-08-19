@@ -25,7 +25,7 @@ void setup() {
 
 void draw() {
   background(200);
-  //walls();
+  walls();
   pointer();
   control();
   player();
@@ -113,10 +113,10 @@ float getRot(PVector m, PVector p) {
 }
 
 void player() {
-  float rot = getRot(mouseLoc(), pLoc);
+  float rot = getRot(mouseLoc(), new PVector(width/2, height/2));
   pRot = rot;
   pushMatrix();
-  translate(pLoc.x, pLoc.y);
+  translate(width/2, height/2);
   rotate(rot + HALF_PI);
   image(player, -player.width/2, -player.height/2);
   popMatrix();
@@ -171,6 +171,21 @@ PVector mouseLoc() {
  return new PVector(mouseX, mouseY);
 }
 
+int generate(PVector loc) {
+  float count = 0;
+  PVector rot = new PVector(0,-1);
+  PVector test;
+  for(int loop = 0; loop < 4; loop++) {
+    test = PVector.add(loc, rot);
+    if(structures.containsKey(test)) {
+      count += structures.get(test);
+    }
+    rot.rotate(HALF_PI);
+  }
+  println("boom");
+  return floor(count / 4);
+}
+
 void mousePressed() {
   PVector loc = getRect(mouseLoc());
   int temp = structures.get(loc);
@@ -191,12 +206,26 @@ void pointer() {
 }
 
 void walls() {
-  for(int x = 0; x < structures.size(); x++) {
-    for(int y = 0; y < structures.size(); y++) {
-      int temp = structures.get(new PVector(x, y));
-      if(temp == 0){
+  PVector screen = new PVector(width/2, height/2);
+  PVector renStart = PVector.sub(screen, pLoc);
+  PVector renStop =  PVector.add(screen, pLoc);
+  
+  for(int x = floor(renStart.x); x < renStop.x; x++) {
+    for(int y = floor(renStart.y); y < renStop.y; y++) {
+      int temp = 0;
+      PVector loc = new PVector(x, y);
+      if(structures.containsKey(loc)) {
+        temp = structures.get(loc);
+      } else {
+//        temp = generate(loc);
+//        structures.put(loc, temp);
+        temp = 0;
+      }
+      
+      if(temp == 0) {
         image(floor, x*scale, y*scale);
-      } 
+      }
+      
       if(temp == 1) {
         image(wall, x*scale, y*scale);
       }
