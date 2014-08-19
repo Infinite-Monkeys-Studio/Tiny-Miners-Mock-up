@@ -1,9 +1,10 @@
-int[][] walls = new int[10][10];
+HashMap<PVector, Integer> structures = new HashMap();
 PImage wall;
 PImage floor;
 PImage goblinWall;
 PImage player;
 PVector pLoc;
+float pRot;
 ArrayList<Character> keys = new ArrayList<Character>();
 boolean collide = false;
 float speed = 2;
@@ -12,6 +13,7 @@ float scale = 50; //Number of pixels width of a square
 
 void setup() {
   size(800, 600);
+  pRot = 0;
   pLoc = new PVector(0, 0);
   wall = loadImage("wall.png");
   goblinWall = loadImage("goblin_wall.png");
@@ -23,7 +25,7 @@ void setup() {
 
 void draw() {
   background(200);
-  walls();
+  //walls();
   pointer();
   control();
   player();
@@ -73,20 +75,29 @@ void keyReleased() {
 void control() {
   ArrayList<Character> temp = keys;
   for(char i : temp) {
+    PVector add = PVector.fromAngle(pRot);
+    add.setMag(speed);
     if(i == 'w') {
-      pLoc.y -= speed;
+      PVector w = add.get();
+      pLoc.add(w);
     }
     
     if(i == 's') {
-      pLoc.y += speed;
+      PVector s = add.get();
+      s.rotate(PI);
+      pLoc.add(s);
     }
     
     if(i == 'a') {
-      pLoc.x -= speed;
+      PVector a = add.get();
+      a.rotate(PI + HALF_PI);
+      pLoc.add(a);
     }
     
     if(i == 'd') {
-      pLoc.x += speed;
+      PVector d = add.get();
+      d.rotate(HALF_PI);
+      pLoc.add(d);
     }
   }
 }
@@ -98,16 +109,15 @@ float getRot(PVector m, PVector p) {
   } else { 
     rot = PI + atan((m.y - p.y) / (m.x - p.x));
   }
-  rot = rot + HALF_PI;
   return rot;
 }
 
 void player() {
   float rot = getRot(mouseLoc(), pLoc);
-  
+  pRot = rot;
   pushMatrix();
   translate(pLoc.x, pLoc.y);
-  rotate(rot);
+  rotate(rot + HALF_PI);
   image(player, -player.width/2, -player.height/2);
   popMatrix();
 }
@@ -119,7 +129,7 @@ void physics() {
   PVector bounce = new PVector(0,0);
   for(int r = 0; r < iter; r++){
     PVector test = PVector.add(rot, pLoc);
-    int[] sq = getRect(test);
+    PVector sq = getRect(test);
     
     if(showDebug) {
       pushMatrix();
@@ -133,7 +143,7 @@ void physics() {
       popMatrix();
     }
     
-    if(walls[sq[0]][sq[1]] != 0){
+    if(structures.get(new PVector(sq.x, sq.y)) != 0){
       PVector face = rot.get();
       face.rotate(PI);
       face.setMag(speed);
@@ -151,10 +161,10 @@ void physics() {
   }
 }
 
-int[] getRect(PVector loc) {
+PVector getRect(PVector loc) {
   int x = floor(loc.x / scale);
   int y = floor(loc.y / scale);
-  return new int[] {x, y};
+  return new PVector(x, y);
 }
 
 PVector mouseLoc() {
@@ -162,33 +172,36 @@ PVector mouseLoc() {
 }
 
 void mousePressed() {
-  int[] loc = getRect(mouseLoc());
-  walls[loc[0]][loc[1]]++;
-  if(walls[loc[0]][loc[1]] > 2) {
-    walls[loc[0]][loc[1]] = 0;
+  PVector loc = getRect(mouseLoc());
+  int temp = structures.get(loc);
+  temp++;
+  if(temp > 2) {
+    temp = 0;
   }
+  structures.put(loc, temp);
 }
 
 void pointer() {
   noFill();
   stroke(255,0,0);
-  int[] loc = getRect(mouseLoc());
-  int mx = floor(loc[0] * scale);
-  int my = floor(loc[1] * scale);
+  PVector loc = getRect(mouseLoc());
+  int mx = floor(loc.x * scale);
+  int my = floor(loc.y * scale);
   rect(mx, my, scale, scale);
 }
 
 void walls() {
-  for(int x = 0; x < walls.length; x++) {
-    for(int y = 0; y < walls.length; y++) {
-      if(walls[x][y] == 0){
+  for(int x = 0; x < structures.size(); x++) {
+    for(int y = 0; y < structures.size(); y++) {
+      int temp = structures.get(new PVector(x, y));
+      if(temp == 0){
         image(floor, x*scale, y*scale);
       } 
-      if(walls[x][y] == 1) {
+      if(temp == 1) {
         image(wall, x*scale, y*scale);
       }
       
-      if(walls[x][y] == 2) {
+      if(temp == 2) {
         image(goblinWall, x*scale, y*scale);
       }
     }
@@ -199,13 +212,13 @@ void saveMap() {
   PrintWriter output = createWriter("data/world.txt");
   String line = "";
   println("saving map!");
-  int[] player = getRect(pLoc);
-  for(int y = 0; y < walls.length; y++) {
-    for(int x = 0; x < walls.length; x++) {
-      if(player[0] == x && player[1] == y) {
+  PVector player = getRect(pLoc);
+  for(int y = 0; y < structures.size(); y++) {
+    for(int x = 0; x < structures.size(); x++) {
+      if(player.x == x && player.y == y) {
         line = line + "p";
       } else {
-        line = line + walls[x][y];
+        line = line + structures.get(new PVector(x, y));
       }
       
       if(x != 9) {
@@ -240,8 +253,9 @@ void loadMap() {
       for(int x = 0; x < pieces.length; x++) {
         if(pieces[x].equalsIgnoreCase("p")) {
           pLoc = new PVector(x * scale + 50, y  * scale + 50);
+          structures.put(new PVector(x, y), 0);
         } else {
-          walls[x][y] = Integer.valueOf(pieces[x]);
+          structures.put(new PVector(x, y), Integer.valueOf(pieces[x]));
         }
       }   
       y++;
