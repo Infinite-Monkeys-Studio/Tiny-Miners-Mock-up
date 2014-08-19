@@ -8,15 +8,16 @@ ArrayList<Character> keys = new ArrayList<Character>();
 boolean collide = false;
 float speed = 2;
 boolean showDebug = false;
+float scale = 50; //Number of pixels width of a square
 
 void setup() {
-  size(1000, 1000);
-  pLoc = new PVector(350, 650);
+  size(800, 600);
+  pLoc = new PVector(0, 0);
   wall = loadImage("wall.png");
   goblinWall = loadImage("goblin_wall.png");
   floor = loadImage("floor.png");
   player = loadImage("miner.png");
-  player.resize(70, 0);
+  player.resize(floor(scale * .7), 0);
   loadMap();
 }
 
@@ -45,9 +46,13 @@ void keyTyped() {
   }
   
   if(key == TAB) {
-    saveMap();
+    //show minimap
   }
   
+  if(key == 'l') {
+    showDebug = !showDebug;
+  }
+
 //  if(key == 'CHAR') {
 //    //DO SOMTHING
 //  }
@@ -104,20 +109,11 @@ void player() {
   translate(pLoc.x, pLoc.y);
   rotate(rot);
   image(player, -player.width/2, -player.height/2);
-  if(showDebug) {
-    noFill();
-    if(collide){
-      stroke(255,0,0);
-    } else {
-      stroke(0,255,0);
-    }
-    ellipse(0, 0, 75, 75);
-  }
   popMatrix();
 }
 
 void physics() {
-  PVector rot = new PVector(0, -37.5);
+  PVector rot = new PVector(0, -player.width / 2);
   int boom = 0;
   int iter = 20;
   PVector bounce = new PVector(0,0);
@@ -127,6 +123,11 @@ void physics() {
     
     if(showDebug) {
       pushMatrix();
+      if(collide){
+        stroke(255,0,0);
+      } else {
+        stroke(0,255,0);
+      }
       fill(0);
       ellipse(test.x, test.y, 2, 2);
       popMatrix();
@@ -151,8 +152,8 @@ void physics() {
 }
 
 int[] getRect(PVector loc) {
-  int x = floor(loc.x / 100);
-  int y = floor(loc.y / 100);
+  int x = floor(loc.x / scale);
+  int y = floor(loc.y / scale);
   return new int[] {x, y};
 }
 
@@ -172,23 +173,23 @@ void pointer() {
   noFill();
   stroke(255,0,0);
   int[] loc = getRect(mouseLoc());
-  int mx = loc[0] * 100;
-  int my = loc[1] * 100;
-  rect(mx, my, 100, 100);
+  int mx = floor(loc[0] * scale);
+  int my = floor(loc[1] * scale);
+  rect(mx, my, scale, scale);
 }
 
 void walls() {
   for(int x = 0; x < walls.length; x++) {
     for(int y = 0; y < walls.length; y++) {
       if(walls[x][y] == 0){
-        image(floor, x*100, y*100);
+        image(floor, x*scale, y*scale);
       } 
       if(walls[x][y] == 1) {
-        image(wall, x*100, y*100);
+        image(wall, x*scale, y*scale);
       }
       
       if(walls[x][y] == 2) {
-        image(goblinWall, x*100, y*100);
+        image(goblinWall, x*scale, y*scale);
       }
     }
   }
@@ -238,7 +239,7 @@ void loadMap() {
       String[] pieces = split(line, ',');
       for(int x = 0; x < pieces.length; x++) {
         if(pieces[x].equalsIgnoreCase("p")) {
-          pLoc = new PVector(x * 100 + 50, y  * 100 + 50);
+          pLoc = new PVector(x * scale + 50, y  * scale + 50);
         } else {
           walls[x][y] = Integer.valueOf(pieces[x]);
         }
